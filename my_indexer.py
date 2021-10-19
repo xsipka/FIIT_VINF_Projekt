@@ -17,8 +17,6 @@ BASE = 10
 def removeStopWord(document, stopWords):
     document = unidecode.unidecode(document)
     document = document.lower()
-    document = re.sub(r'[^a-z0-9|()*]+', ' ', document)
-    document = re.sub(r'style font style (normal|italic)', '', document)
     document = ' '.join([word for word in document.split() if word not in stopWords])
     #print(document)
     return document
@@ -77,8 +75,8 @@ def calculateTfIdf(term, termDict, numOfDocs):
 # main
 if __name__ == "__main__":
 
-    myStopWords = ['Navbox', 'navbox', 'Infobox', 'infobox', 'getArgs', 'args', 'listclass', '|listclass',
-                   'br', 'hlist', 'autocollapse', 'imagesize', 'caption', '|hlist', 'hlist|', 'listclass|']
+    myStopWords = ['Infobox', 'infobox', 'getArgs', 'args', 'listclass', '|listclass', 'br',
+                   'hlist', 'autocollapse', 'imagesize', 'caption', '|hlist', 'hlist|', 'listclass|']
     #stopWords = stopwords.words("english")
     #stopWords.extend(myList)
 

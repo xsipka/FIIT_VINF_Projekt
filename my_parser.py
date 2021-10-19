@@ -3,12 +3,14 @@ import csv
 import os
 import time
 import re
+import unidecode
 
 FILE_00 =  'en_wiki_13.xml'
 FILE_01 = 'en_wiki_11.xml-p6899367p7054859'
 FILE_02 = 'conrad_wiki.xml'
 FILE_03 = 'war_and_peace_wiki.xml'
-PATH = 'datasets/'
+IN_PATH = 'datasets/raw data/'
+OUT_PATH = 'datasets/'
 MAX_LIST_LENGTH = 100000
 
 
@@ -22,8 +24,11 @@ def timeFormater(elapsedTime):
 
 # removes excess whitespace from string + other stuff
 def stringFormater(string):
+    string = unidecode.unidecode(string)
+    string = string.lower()
     string = re.sub(r'[\"\[\]]', ' ', string)
     string = re.sub(r' +', ' ', string)
+    string = re.sub(r'[^a-z0-9|()*=]+', ' ', string)
     return string
 
 
@@ -144,7 +149,8 @@ class PageHandler(xml.sax.handler.ContentHandler):
             toSave = 'film | '
             data.append(re.findall('(?i)name *=.*?(?=\|)\|', page))
             data.append(re.findall('(?i)director *=.*?(?=\])\] *\|', page))
-            data.append(re.findall('(?i)based on *\|.*?(?=\}\})\}\} *\|', page))
+            #data.append(re.findall('(?i)based on *\|.*?(?=\}\})\}\} *\|', page))
+            data.append(re.findall('(?i)based_on *=.*?(?=\}\})\}\} *\|', page))
 
             for item in data:
                 toSave += ''.join(item)
@@ -172,10 +178,10 @@ class PageHandler(xml.sax.handler.ContentHandler):
     def saveListAsCSV(self):
         header = ['id', 'title', 'text']
 
-        with open(PATH + 'output.csv', 'a', encoding='utf-8') as file:
+        with open(OUT_PATH + 'output.csv', 'a', encoding='utf-8') as file:
             writer = csv.writer(file)
 
-            if os.path.getsize(PATH + 'output.csv') == 0:
+            if os.path.getsize(OUT_PATH + 'output.csv') == 0:
                 writer.writerow(header)
 
             for index, page in enumerate(self.pageList):
@@ -193,7 +199,7 @@ if __name__ == "__main__":
     parser = xml.sax.make_parser()
     parser.setContentHandler(handler)
 
-    with open(PATH + FILE_02, encoding='utf-8') as file:
+    with open(IN_PATH + FILE_00, encoding='utf-8') as file:
         for line in file:
             parser.feed(line)
 
