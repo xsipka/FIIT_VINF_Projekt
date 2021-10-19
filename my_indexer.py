@@ -18,7 +18,6 @@ def removeStopWord(document, stopWords):
     document = unidecode.unidecode(document)
     document = document.lower()
     document = re.sub(r'[^a-z0-9|()*]+', ' ', document)
-    document = re.sub(r'(list|group)[1-9]', '', document)
     document = re.sub(r'style font style (normal|italic)', '', document)
     document = ' '.join([word for word in document.split() if word not in stopWords])
     #print(document)

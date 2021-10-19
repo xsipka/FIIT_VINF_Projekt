@@ -19,6 +19,14 @@ def timeFormater(elapsedTime):
     secs = elapsedTime % 60
     return "{}:{:>02}:{:>05.2f}".format(hour, mins, secs)
 
+
+# removes excess whitespace from string + other stuff
+def stringFormater(string):
+    string = re.sub(r'[\"\[\]]', ' ', string)
+    string = re.sub(r' +', ' ', string)
+    return string
+
+
 # class used for parsing XML file page by page
 class PageHandler(xml.sax.handler.ContentHandler):
     def __init__(self):
@@ -32,6 +40,7 @@ class PageHandler(xml.sax.handler.ContentHandler):
         self.contentHelper = False
         self.pageSaver = False
 
+
     # add retrieved content into buffer
     def characters(self, content):
         if self.element == 'title':
@@ -40,11 +49,13 @@ class PageHandler(xml.sax.handler.ContentHandler):
         if self.element == 'text' and self.findUsefulData(content):
             self.buffer.append(content)
 
+
     # check if starting tag of element whose content we want to retrieve (title or text)
     def startElement(self, element, attrs):
         if element in ('title', 'text'):
             self.element = element
             self.buffer = []
+
 
     # check if ending tag of element, save retrieved content
     def endElement(self, element):
@@ -62,9 +73,10 @@ class PageHandler(xml.sax.handler.ContentHandler):
             self.pageList = []
             print("100k hotovo :)")
 
+
     # parse Infoboxes and Navboxes using regular expressions
     def findUsefulData(self, content):
-        if re.search('(?i){{Infobox (book|manuscript|short story|writer|film)', content) or re.search('(?i){{Navbox', content):
+        if re.search('(?i){{Infobox *(book|short story|writer|film)', content) or re.search('(?i){{Navbox', content):
             self.contentParser = True
             self.pageSaver = True
             return True
@@ -86,6 +98,76 @@ class PageHandler(xml.sax.handler.ContentHandler):
 
         return False
 
+
+    # extrac useful data out of infoboxes & navboxes
+    def processPage(self, page):
+
+        if re.search('(?i){{Infobox *(book|short story|writer|film)', page):
+            data = self.extractInfoboxData(page)
+            return data
+
+        elif re.search('(?i){{Navbox', page):
+            data = self.extractNavboxData(page)
+            return data
+
+        return page
+
+
+    # extract data out of infoboxes by using regular expressions
+    def extractInfoboxData(self, page):
+        data = []
+
+        # select from infobox book or short story
+        if re.search('(?i){{Infobox *(book|short story)', page):
+            toSave = 'book | '
+            data.append(re.findall('(?i)name *=.*?(?=\|)\|', page))
+            data.append(re.findall('(?i)author *=.*?(?=\])\] *\|', page))
+            data.append(re.findall('(?i)genre *=.*?(?=\])\] *\|', page))
+            data.append(re.findall('(?i)pages *=.*?(?=\|)\|', page))
+
+            for item in data:
+                toSave += ''.join(item)
+            return toSave
+
+        # select from infobox writer
+        elif re.search('(?i){{Infobox *writer', page):
+            toSave = 'writer | '
+            data.append(re.findall('(?i)[ *|\|]name *=.*?(?=\|)\|', page))
+            data.append(re.findall('(?i)pseudonym *=.*?(?=\|)\|', page))
+
+            for item in data:
+                toSave += ''.join(item)
+            return toSave
+
+        # select from infobox film
+        elif re.search('(?i){{Infobox *film', page):
+            toSave = 'film | '
+            data.append(re.findall('(?i)name *=.*?(?=\|)\|', page))
+            data.append(re.findall('(?i)director *=.*?(?=\])\] *\|', page))
+            data.append(re.findall('(?i)based on *\|.*?(?=\}\})\}\} *\|', page))
+
+            for item in data:
+                toSave += ''.join(item)
+            return toSave
+
+        return page
+
+
+    # extract data out of infoboxes by using regular expressions
+    def extractNavboxData(self, page):
+
+        data = []
+        toSave = 'navbox | '
+
+        data.append(re.findall('(?i)name *=.*?(?=\|)\|', page))
+        data.append(re.findall('(?i)group\d+ *=.*', page))
+
+        for item in data:
+            toSave += ''.join(item)
+        toSave = re.sub('(?i){{noitalic\|\(\d+\)\}\}', ' ', toSave)
+        return toSave
+
+
     # save found data in file in CSV format
     def saveListAsCSV(self):
         header = ['id', 'title', 'text']
@@ -97,7 +179,10 @@ class PageHandler(xml.sax.handler.ContentHandler):
                 writer.writerow(header)
 
             for index, page in enumerate(self.pageList):
-                row = [index, page[0], page[1]]
+                title = str(page[0])
+                page = self.processPage(str(page[1]))
+                page = stringFormater(page)
+                row = [index, title, page]
                 writer.writerow(row)
 
 
@@ -108,7 +193,7 @@ if __name__ == "__main__":
     parser = xml.sax.make_parser()
     parser.setContentHandler(handler)
 
-    with open(PATH + FILE_03, encoding='utf-8') as file:
+    with open(PATH + FILE_02, encoding='utf-8') as file:
         for line in file:
             parser.feed(line)
 
