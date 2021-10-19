@@ -10,7 +10,7 @@ FILE_01 = 'output_wiki_11.csv'
 FILE_02 = 'output_wiki_conrad.csv'
 FILE_03 = 'output_wiki_war_and_peace.csv'
 PATH = 'datasets/'
-BASE = 10
+LOG_BASE = 10
 
 
 # removes stop words and most of nonalphanumeric characters
@@ -53,7 +53,7 @@ def createTermDict(id, document, termDict):
 def calculateTfIdf(term, termDict, numOfDocs):
 
     docFreq = termDict['docFreq']
-    idf = log(numOfDocs/docFreq, BASE)
+    idf = log(numOfDocs/docFreq, LOG_BASE)
     tfIdfDict = {}
 
     for key in termDict:
@@ -72,6 +72,48 @@ def calculateTfIdf(term, termDict, numOfDocs):
     return tfIdfDict
 
 
+# read found documents from file
+def readFoundDocuments(offsets, docsToCheck):
+
+    with open(PATH + FILE_01, 'r', encoding='utf-8') as file:
+
+        for doc in docsToCheck:
+            file.seek(offsets[doc[0]], 0)
+            line = file.readline()
+            formatOutput(line)
+
+
+# format output in a naice way
+def formatOutput(document):
+    document = document.replace(',', '\n')
+    document = document.replace(' br ', ' ')
+    docList = document.split('\n')
+    docList[2] = docList[2].replace('=', ':')
+    type = re.findall(r'^[^\|]+ *\||$', docList[2])[0]
+    docList[2] = re.sub('^[^\|]+ *\|', '', docList[2])
+    docList[2] = docList[2].lstrip()
+    finalDoc = docList[2].split('|')
+
+    print('Document ID:', docList[0])
+    print('Document name:', docList[1])
+    print('Document type:', type.replace('|', ''))
+
+    prev = ''
+    newLine = ''
+    for index, currItem in enumerate(finalDoc):
+        if ':' in prev and ':' in currItem:
+            newLine = '\n'
+
+        if ':' in currItem:
+            print(newLine,currItem, end='')
+            prev = currItem
+            newLine = ''
+        else:
+            print(newLine,currItem, end='')
+
+    print('\n')
+
+
 # main
 if __name__ == "__main__":
 
@@ -82,8 +124,18 @@ if __name__ == "__main__":
 
     termDict = {}
     tfIdfDict = {}
+    fileOffsets = []
     numOfDocs = 0
 
+    # vyratanie a ulozenie offsetov, nech vieme kde sa dokument zacina
+    with open(PATH + FILE_01, 'rb') as file:
+        while True:
+            line = file.readline()
+            if not line:
+                break
+            fileOffsets.append(file.tell())
+
+    # indexovanie
     with open(PATH + FILE_01, 'r', encoding='utf-8') as file:
         csv_reader = csv.DictReader(file)
 
@@ -95,9 +147,6 @@ if __name__ == "__main__":
 
     for key in termDict:
         tfIdfDict.update(calculateTfIdf(key, termDict[key], numOfDocs))
-
-    # for key in tfIdfDict:
-    #    print(key, tfIdfDict[key])
 
     # vyhladavanie
     while True:
@@ -131,8 +180,7 @@ if __name__ == "__main__":
                     avgTfIdf.append((doc, temp/len(shared)))
 
                 avgTfIdf.sort(key=lambda x:x[1])
-                for doc in avgTfIdf:
-                    print("Check out document", doc[0])
+                readFoundDocuments(fileOffsets, avgTfIdf)
 
             except:
                 print("Nothing relevant found ...")
