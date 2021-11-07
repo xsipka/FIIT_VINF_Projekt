@@ -9,9 +9,10 @@ FILE_00 =  'en_wiki_13.xml'
 FILE_01 = 'en_wiki_11.xml-p6899367p7054859'
 FILE_02 = 'conrad_wiki.xml'
 FILE_03 = 'war_and_peace_wiki.xml'
+FILE_04 = 'en_wiki_complete.xml'
 IN_PATH = 'datasets/raw data/'
 OUT_PATH = 'datasets/'
-MAX_LIST_LENGTH = 100000
+MAX_LIST_LENGTH = 25000
 
 
 # format elapsed time into h:mm:ss
@@ -76,7 +77,7 @@ class PageHandler(xml.sax.handler.ContentHandler):
         if len(self.pageList) > MAX_LIST_LENGTH:
             self.saveListAsCSV()
             self.pageList = []
-            print("100k hotovo :)")
+            print("25k hotovo :)")
 
 
     # parse Infoboxes and Navboxes using regular expressions
@@ -199,7 +200,7 @@ if __name__ == "__main__":
     parser = xml.sax.make_parser()
     parser.setContentHandler(handler)
 
-    with open(IN_PATH + FILE_00, encoding='utf-8') as file:
+    with open(IN_PATH + FILE_04, encoding='utf-8') as file:
         for line in file:
             parser.feed(line)
 

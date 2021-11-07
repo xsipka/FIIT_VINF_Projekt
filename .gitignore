@@ -1,6 +1,5 @@
 /bz2_compressor.py
-/datasets/output_wiki_war_and_peace.csv
-/datasets/output_wiki_conrad.csv
-/datasets/raw data/
-/datasets/output_wiki_11.csv
-/datasets/output_wiki_13.csv
+/datasets
+/venv
+/.idea
+/.ipynb_checkpoints
