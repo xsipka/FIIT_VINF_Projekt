@@ -189,6 +189,7 @@ if __name__ == "__main__":
 
                 for doc in shared:
                     temp = 0
+                    print(doc)
                     for item in found:
                         temp += item[doc]
                     avgTfIdf.append((doc, temp/len(shared)))

@@ -7,13 +7,14 @@ import unidecode
 
 FILE_00 =  'en_wiki_13.xml'
 FILE_01 = 'en_wiki_11.xml-p6899367p7054859'
-FILE_02 = 'conrad_wiki.xml'
+FILE_02 = 'wiki_sample.xml'
 FILE_03 = 'war_and_peace_wiki.xml'
 FILE_04 = 'en_wiki_complete.xml'
 IN_PATH = 'datasets/raw data/'
 OUT_PATH = 'datasets/'
 MAX_LIST_LENGTH = 25000
 
+pageId = 0
 
 # format elapsed time into h:mm:ss
 def timeFormater(elapsedTime):
@@ -24,12 +25,17 @@ def timeFormater(elapsedTime):
 
 
 # removes excess whitespace from string + other stuff
-def stringFormater(string):
-    string = unidecode.unidecode(string)
-    string = string.lower()
-    string = re.sub(r'[\"\[\]]', ' ', string)
-    string = re.sub(r' +', ' ', string)
-    string = re.sub(r'[^a-z0-9|()*=]+', ' ', string)
+def stringFormater(string, basic=True):
+    if basic:
+        string = unidecode.unidecode(string)
+        string = string.lower()
+        string = re.sub(r'[\"\[\]]', ' ', string)
+        string = re.sub(r' +', ' ', string)
+        string = re.sub(r'[^a-z0-9|()*=]+', ' ', string)
+    else:
+        string = re.sub(r'{.*?(?=\})',' ', string)
+        string = re.sub(r'(?i)< *ref.*< */ *ref',' ', string)
+
     return string
 
 
@@ -45,6 +51,7 @@ class PageHandler(xml.sax.handler.ContentHandler):
         self.contentParser = False
         self.contentHelper = False
         self.pageSaver = False
+        self.writerPageSaver = False
 
 
     # add retrieved content into buffer
@@ -53,6 +60,9 @@ class PageHandler(xml.sax.handler.ContentHandler):
             self.buffer.append(content)
 
         if self.element == 'text' and self.findUsefulData(content):
+            self.buffer.append(content)
+
+        elif self.element == 'text' and self.findWriterPage(content):
             self.buffer.append(content)
 
 
@@ -69,10 +79,11 @@ class PageHandler(xml.sax.handler.ContentHandler):
             value = ' '.join(self.buffer).replace('\n', ' ')
             self.values[element] = value
 
-        if element == 'page' and self.pageSaver:
+        if element == 'page' and (self.pageSaver or self.writerPageSaver):
             self.pageList.append((self.values['title'], self.values['text']))
             self.pageCounter += 1
             self.pageSaver = False
+            self.writerPageSaver = False
 
         if len(self.pageList) > MAX_LIST_LENGTH:
             self.saveListAsCSV()
@@ -80,9 +91,24 @@ class PageHandler(xml.sax.handler.ContentHandler):
             print("25k hotovo :)")
 
 
+    # find pages about writers
+    def findWriterPage(self, content):
+        # page is probably about some writer
+        # (?i)== *[a-zA-Z]*(works|bibliography)[a-zA-Z]* *==
+        # (?i)(novelist|writer|essayist|poet)
+        # (?i)== *(works|bibliography) *==.*?(?=(  *==[a-zA-Z ]*==))
+        if self.writerPageSaver:
+            return True
+        if re.search('(?i)== *(works|bibliography) *==', content):
+            self.writerPageSaver = True
+            return True
+        return False
+
+
     # parse Infoboxes and Navboxes using regular expressions
     def findUsefulData(self, content):
-        if re.search('(?i){{Infobox *(book|short story|writer|film)', content) or re.search('(?i){{Navbox', content):
+
+        if re.search('(?i){{Infobox *(book|short story|film)', content) or re.search('(?i){{Navbox', content):
             self.contentParser = True
             self.pageSaver = True
             return True
@@ -108,7 +134,7 @@ class PageHandler(xml.sax.handler.ContentHandler):
     # extrac useful data out of infoboxes & navboxes
     def processPage(self, page):
 
-        if re.search('(?i){{Infobox *(book|short story|writer|film)', page):
+        if re.search('(?i){{Infobox *(book|short story|film)', page):
             data = self.extractInfoboxData(page)
             return data
 
@@ -116,7 +142,28 @@ class PageHandler(xml.sax.handler.ContentHandler):
             data = self.extractNavboxData(page)
             return data
 
+        elif re.search('(?i)== *(works|bibliography) *==', page):
+            # return page
+            data = self.extractWriterPage(page)
+            return data
+
         return page
+
+
+    # extract some informations about writer from writer pages
+    def extractWriterPage(self, page):
+        # (?i)==[a-zA-Z ]*(works|bibliography)[a-zA-Z ]*==.*?(?=(  *==[a-zA-Z ]*==))
+        # (?i)== *(works|bibliography) *==.*?(?=( *==[a-zA-Z ]*==))
+        data = re.match('(?i)== *(works|bibliography) *==.*?(?=(  *==[a-zA-Z ]*==))', page).group(0)
+        data = stringFormater(data, False)
+
+        #f = open("sample.txt", "a",encoding='utf-8')
+        #f.write(data)
+        #f.write("\n\n..........................................................................\n\n")
+        #f.close()
+
+        return data
+
 
 
     # extract data out of infoboxes by using regular expressions
@@ -178,6 +225,7 @@ class PageHandler(xml.sax.handler.ContentHandler):
     # save found data in file in CSV format
     def saveListAsCSV(self):
         header = ['id', 'title', 'text']
+        global pageId
 
         with open(OUT_PATH + 'output.csv', 'a', encoding='utf-8') as file:
             writer = csv.writer(file)
@@ -185,11 +233,12 @@ class PageHandler(xml.sax.handler.ContentHandler):
             if os.path.getsize(OUT_PATH + 'output.csv') == 0:
                 writer.writerow(header)
 
-            for index, page in enumerate(self.pageList):
+            for page in self.pageList:
                 title = str(page[0])
                 page = self.processPage(str(page[1]))
                 page = stringFormater(page)
-                row = [index, title, page]
+                row = [pageId, title, page]
+                pageId += 1
                 writer.writerow(row)
 
 
@@ -200,7 +249,7 @@ if __name__ == "__main__":
     parser = xml.sax.make_parser()
     parser.setContentHandler(handler)
 
-    with open(IN_PATH + FILE_04, encoding='utf-8') as file:
+    with open(IN_PATH + FILE_02, encoding='utf-8') as file:
         for line in file:
             parser.feed(line)
 
