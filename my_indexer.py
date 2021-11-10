@@ -3,14 +3,24 @@ import re
 import unidecode
 #from nltk.corpus import stopwords
 from math import log
+import time
 
 
 FILE_00 =  'output_wiki_13.csv'
 FILE_01 = 'output_wiki_11.csv'
 FILE_02 = 'output_wiki_conrad.csv'
 FILE_03 = 'output_wiki_war_and_peace.csv'
+FILE_04 = 'output_wiki_en.csv'
 PATH = 'datasets/'
 LOG_BASE = 10
+
+
+# format elapsed time into h:mm:ss
+def timeFormater(elapsedTime):
+    hour = int(elapsedTime / (60 * 60))
+    mins = int((elapsedTime % (60 * 60)) / 60)
+    secs = elapsedTime % 60
+    return "{}:{:>02}:{:>05.2f}".format(hour, mins, secs)
 
 
 # removes stop words and most of nonalphanumeric characters
@@ -75,7 +85,7 @@ def calculateTfIdf(term, termDict, numOfDocs):
 # read found documents from file
 def readFoundDocuments(offsets, docsToCheck):
 
-    with open(PATH + FILE_01, 'r', encoding='utf-8') as file:
+    with open(PATH + FILE_04, 'r', encoding='utf-8') as file:
 
         for doc in docsToCheck:
             file.seek(offsets[doc[0]], 0)
@@ -117,6 +127,7 @@ def formatOutput(document):
 # main
 if __name__ == "__main__":
 
+    start = time.time()
     myStopWords = ['Infobox', 'infobox', 'getArgs', 'args', 'listclass', '|listclass', 'br',
                    'hlist', 'autocollapse', 'imagesize', 'caption', '|hlist', 'hlist|', 'listclass|']
     #stopWords = stopwords.words("english")
@@ -128,7 +139,7 @@ if __name__ == "__main__":
     numOfDocs = 0
 
     # vyratanie a ulozenie offsetov, nech vieme kde sa dokument zacina
-    with open(PATH + FILE_01, 'rb') as file:
+    with open(PATH + FILE_04, 'rb') as file:
         while True:
             line = file.readline()
             if not line:
@@ -136,7 +147,7 @@ if __name__ == "__main__":
             fileOffsets.append(file.tell())
 
     # indexovanie
-    with open(PATH + FILE_01, 'r', encoding='utf-8') as file:
+    with open(PATH + FILE_04, 'r', encoding='utf-8') as file:
         csv_reader = csv.DictReader(file)
 
         for row in csv_reader:
@@ -147,6 +158,9 @@ if __name__ == "__main__":
 
     for key in termDict:
         tfIdfDict.update(calculateTfIdf(key, termDict[key], numOfDocs))
+
+    end = time.time()
+    print('Indexing time: ', timeFormater(end - start))
 
     # vyhladavanie
     while True:
@@ -175,6 +189,7 @@ if __name__ == "__main__":
 
                 for doc in shared:
                     temp = 0
+                    print(doc)
                     for item in found:
                         temp += item[doc]
                     avgTfIdf.append((doc, temp/len(shared)))
