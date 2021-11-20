@@ -12,7 +12,7 @@ FILE_03 = 'war_and_peace_wiki.xml'
 FILE_04 = 'en_wiki_complete.xml'
 IN_PATH = 'datasets/raw data/'
 OUT_PATH = 'datasets/'
-MAX_LIST_LENGTH = 25000
+MAX_LIST_LENGTH = 15000
 
 pageId = 0
 
@@ -154,16 +154,19 @@ class PageHandler(xml.sax.handler.ContentHandler):
     def extractWriterPage(self, page):
         # (?i)==[a-zA-Z ]*(works|bibliography)[a-zA-Z ]*==.*?(?=(  *==[a-zA-Z ]*==))
         # (?i)== *(works|bibliography) *==.*?(?=( *==[a-zA-Z ]*==))
-        data = re.match('(?i)== *(works|bibliography) *==.*?(?=(  *==[a-zA-Z ]*==))', page).group(0)
-        data = stringFormater(data, False)
-
+        data = re.match('(?i)== *(works|bibliography) *==.*?(?=(  *==[a-zA-Z ]*==))', page)
+        if data == None:
+            return ''
+        else:
+            data = data.group(0)
+            data = stringFormater(data, False)
+        
         #f = open("sample.txt", "a",encoding='utf-8')
         #f.write(data)
         #f.write("\n\n..........................................................................\n\n")
         #f.close()
 
-        return data
-
+        return 'writer | ' + data
 
 
     # extract data out of infoboxes by using regular expressions
@@ -249,7 +252,7 @@ if __name__ == "__main__":
     parser = xml.sax.make_parser()
     parser.setContentHandler(handler)
 
-    with open(IN_PATH + FILE_02, encoding='utf-8') as file:
+    with open(IN_PATH + FILE_04, encoding='utf-8') as file:
         for line in file:
             parser.feed(line)
 

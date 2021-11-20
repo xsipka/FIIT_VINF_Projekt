@@ -10,7 +10,7 @@ FILE_00 =  'output_wiki_13.csv'
 FILE_01 = 'output_wiki_11.csv'
 FILE_02 = 'output_wiki_conrad.csv'
 FILE_03 = 'output_wiki_war_and_peace.csv'
-FILE_04 = 'output_wiki_en.csv'
+FILE_04 = 'output_wiki_en_02.csv'
 PATH = 'datasets/'
 LOG_BASE = 10
 
